@@ -4,6 +4,8 @@ import { CafeDetailView } from '@/components/cafe/cafedetailview';
 import type { CafeDetailRow } from '@/lib/types';
 import type { Metadata } from 'next';
 
+export const dynamic = 'force-dynamic';
+
 // Genera metadata dinámica para SEO y compartir
 export async function generateMetadata({
   params,
