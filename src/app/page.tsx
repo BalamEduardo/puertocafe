@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import PuertoCafeAppClient from './puerto-cafe-app-client';
 import { supabase } from '@/lib/supabase';
 import { publicStorageUrl, priceToSymbols } from '@/lib/utils/image';
@@ -130,11 +131,17 @@ export default async function Page() {
   }));
 
   return (
-    <PuertoCafeAppClient 
-      heroCafes={heroCafes} 
-      cafes={cafes} 
-      availableZones={availableZones}
-      availableModes={availableModes}
-    />
+    <Suspense fallback={
+      <div className="w-full h-screen bg-[#1A1A1A] flex items-center justify-center">
+        <p className="text-white/50 font-serif italic">Cargando experiencia editorial...</p>
+      </div>
+    }>
+      <PuertoCafeAppClient 
+        heroCafes={heroCafes} 
+        cafes={cafes} 
+        availableZones={availableZones}
+        availableModes={availableModes}
+      />
+    </Suspense>
   );
 }
