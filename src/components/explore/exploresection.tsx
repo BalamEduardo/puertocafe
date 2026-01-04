@@ -6,14 +6,13 @@ import { ListView } from './listview';
 import { MapLayout } from './maplayout';
 import type { ExploreCafe } from './types';
 
-
-
 interface ExploreSectionProps {
   cafes: ExploreCafe[];
   onViewDetail: (slug: string) => void;
+  onResetFilters?: () => void; // Nuevo prop opcional
 }
 
-export const ExploreSection = ({ cafes, onViewDetail }: ExploreSectionProps) => {
+export const ExploreSection = ({ cafes, onViewDetail, onResetFilters }: ExploreSectionProps) => {
   const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [selectedCafeId, setSelectedCafeId] = useState<string | null>(null);
@@ -35,7 +34,11 @@ export const ExploreSection = ({ cafes, onViewDetail }: ExploreSectionProps) => 
 
       <div className="flex-1 relative w-full">
         {viewMode === 'list' ? (
-          <ListView cafes={cafes} onSelectCafe={onViewDetail} />
+          <ListView 
+            cafes={cafes} 
+            onSelectCafe={onViewDetail} 
+            onResetFilters={onResetFilters} // Pasamos el reset
+          />
         ) : (
           <MapLayout
             cafes={cafes}
@@ -44,6 +47,7 @@ export const ExploreSection = ({ cafes, onViewDetail }: ExploreSectionProps) => 
             onCategoryChange={setActiveCategory}
             onSelectCafe={setSelectedCafeId}
             onViewDetail={onViewDetail}
+            onResetFilters={onResetFilters} // Pasamos el reset al mapa también
           />
         )}
       </div>

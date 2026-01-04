@@ -5,6 +5,7 @@ import { CategorySidebar } from './categorysidebar';
 import { SidePanel } from './sidepanel';
 import { EDITORIAL_CATEGORIES } from '@/data/placeholder';
 import type { ExploreCafe } from './types';
+import { RefreshCcw } from 'lucide-react'; // Icono
 
 interface MapLayoutProps {
     cafes: ExploreCafe[];
@@ -13,8 +14,8 @@ interface MapLayoutProps {
     onCategoryChange: (categoryId: string | null) => void;
     onSelectCafe: (id: string | null) => void;
     onViewDetail: (id: string) => void;
+    onResetFilters?: () => void;
 }
-
 
 export const MapLayout = ({
     cafes,
@@ -23,6 +24,7 @@ export const MapLayout = ({
     onCategoryChange,
     onSelectCafe,
     onViewDetail,
+    onResetFilters,
 }: MapLayoutProps) => {
     const selectedCafe = cafes.find((c) => c.id === selectedCafeId) || null;
 
@@ -49,6 +51,25 @@ export const MapLayout = ({
                     selectedId={selectedCafeId}
                     onSelect={onSelectCafe}
                 />
+
+                {/* MENSAJE FLOTANTE DE VACÍO PARA EL MAPA */}
+                {cafes.length === 0 && (
+                    <div className="absolute top-8 left-1/2 -translate-x-1/2 z-30">
+                        <div className="bg-white/90 backdrop-blur-md px-6 py-3 rounded-full shadow-xl border border-black/5 flex items-center gap-4 animate-fadeInUp">
+                            <span className="text-sm font-sans text-[#1A1A1A]/80">
+                                Sin resultados en esta zona.
+                            </span>
+                            {onResetFilters && (
+                                <button 
+                                    onClick={(e) => { e.stopPropagation(); onResetFilters(); }}
+                                    className="text-xs font-bold uppercase tracking-wide text-[#606C38] hover:underline flex items-center gap-1"
+                                >
+                                    <RefreshCcw size={10} /> Ver todo
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                )}
             </div>
 
             <SidePanel
