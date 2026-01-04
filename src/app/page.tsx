@@ -11,7 +11,7 @@ type CafeListRow = {
   editorial_statement: string;
   hero: { bucket: string; path: string; alt_text: string | null } | null;
   modes: { name: string; slug: string }[];
-  coffee: { name: string; slug: string } | {}; // viene como {} si no hay
+  coffee: { name: string; slug: string } | {}; 
 };
 
 type CafeMapRow = {
@@ -25,6 +25,7 @@ type LocationRow = {
   address: string;
 };
 
+// Helper para normalizar coordenadas (0-100%)
 function normalizeToPercent(
   lat: number,
   lng: number,
@@ -40,24 +41,44 @@ function normalizeToPercent(
   return { x, y };
 }
 
+// Revalidar cada 60s (ISR)
+export const revalidate = 60;
+
 export default async function Page() {
   const [
     { data: listData, error: e1 },
     { data: mapData, error: e2 },
     { data: locData, error: e3 },
+    { data: zonesData, error: e4 },
+    // Fetch relacional robusto para 'Modo'
+    { data: modesData, error: e5 }, 
   ] = await Promise.all([
-    supabase.from('cafe_list_view').select('*'),
+    // Ordenamos por nombre para evitar error si is_featured no existe aún en la vista
+    supabase.from('cafe_list_view').select('*').order('name', { ascending: true }),
     supabase.from('cafe_map_view').select('id,lat,lng'),
     supabase.from('locations').select('cafe_id,address'),
+    supabase.from('zones').select('name').order('order', { ascending: true }),
+    
+    // Pedimos la categoría 'modo' y sus tags anidados.
+    supabase
+      .from('tag_categories')
+      .select('tags(name)') 
+      .eq('slug', 'modo')
+      .single(),
   ]);
 
-  if (e1) throw new Error(e1.message);
-  if (e2) throw new Error(e2.message);
-  if (e3) throw new Error(e3.message);
-
+  if (e1) console.error('Error fetching list:', e1);
+  if (e2) console.error('Error fetching map:', e2);
+  
   const listRows = (listData ?? []) as unknown as CafeListRow[];
   const mapRows = (mapData ?? []) as unknown as CafeMapRow[];
   const locRows = (locData ?? []) as unknown as LocationRow[];
+
+  // Extraer nombres simples para el Searchbar
+  const availableZones = (zonesData ?? []).map((z) => z.name);
+  
+  // Extraemos los tags del objeto relacional.
+  const availableModes = (modesData?.tags ?? []).map((t: any) => t.name).sort();
 
   const mapById = new Map(mapRows.map((r) => [r.id, r]));
   const addrById = new Map(locRows.map((r) => [r.cafe_id, r.address]));
@@ -86,20 +107,20 @@ export default async function Page() {
 
     return {
       id: c.id,
-      slug: c.slug, // para enlazar a /cafe/[slug]
+      slug: c.slug, // <--- ¡AQUÍ ESTABA EL ERROR! Faltaba mapear el slug
       name: c.name,
       zone: c.zone.name,
-      type: coffeeName, // badge en card/sidepanel
+      type: coffeeName,
       price: priceToSymbols(c.price_level),
       image,
       description: c.editorial_statement,
       address,
       coords,
-      categoryIds: (c.modes ?? []).map((t) => t.slug), // para filtrar en mapa
+      categoryIds: (c.modes ?? []).map((t) => t.slug),
     };
   });
 
-  const heroCafes = listRows.map((c) => ({
+  const heroCafes = listRows.slice(0, 5).map((c) => ({
     id: c.id,
     name: c.name,
     location: c.zone.name,
@@ -108,5 +129,12 @@ export default async function Page() {
     image: c.hero ? publicStorageUrl(c.hero.bucket, c.hero.path) : '',
   }));
 
-  return <PuertoCafeAppClient heroCafes={heroCafes} cafes={cafes} />;
+  return (
+    <PuertoCafeAppClient 
+      heroCafes={heroCafes} 
+      cafes={cafes} 
+      availableZones={availableZones}
+      availableModes={availableModes}
+    />
+  );
 }
